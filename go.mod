@@ -1,4 +1,4 @@
-module github.com/nicedev97/eotel-v2
+module github.com/Maximumsoft-Co-LTD/eotel
 
 go 1.24.4
 
