@@ -1,4 +1,4 @@
-module github.com/Maximumsoft-Co-LTD/eotel
+module github.com/expertep/eotel
 
 go 1.24.4
 
