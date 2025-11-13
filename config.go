@@ -1,5 +1,7 @@
 package eotel
 
+import "github.com/gin-gonic/gin"
+
 type Config struct {
 	ServiceName   string
 	JobName       string
@@ -14,6 +16,8 @@ type Config struct {
 
 	SentryDSN string
 	LokiURL   string
+
+	HttpEngine *gin.Engine
 }
 
 var globalCfg Config

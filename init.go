@@ -5,9 +5,11 @@ import (
 	"crypto/tls"
 	"fmt"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/getsentry/sentry-go"
+	"github.com/gin-gonic/gin"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -96,16 +98,26 @@ func InitEOTEL(ctx context.Context, cfg Config) (func(context.Context) error, er
 
 	// Init metrics
 	if cfg.EnableMetrics {
-		mExp, err := otlpmetricgrpc.New(ctx, metricOpts...)
-		if err != nil {
-			return nil, fmt.Errorf("metric exporter: %w", err)
+		if cfg.HttpEngine != nil {
+			mExp, err := otlpmetricgrpc.New(ctx, metricOpts...)
+			if err != nil {
+				return nil, fmt.Errorf("metric exporter: %w", err)
+			}
+			mp := sdkmetric.NewMeterProvider(
+				sdkmetric.WithResource(res),
+				sdkmetric.WithReader(sdkmetric.NewPeriodicReader(mExp)),
+			)
+			otel.SetMeterProvider(mp)
+			globalMeter = mp.Meter(cfg.ServiceName)
+		} else {
+			cfg.HttpEngine.GET("/metrics", func(c *gin.Context) {
+				c.JSON(http.StatusOK, gin.H{
+					"status":  "ok",
+					"service": cfg.ServiceName,
+				})
+			})
 		}
-		mp := sdkmetric.NewMeterProvider(
-			sdkmetric.WithResource(res),
-			sdkmetric.WithReader(sdkmetric.NewPeriodicReader(mExp)),
-		)
-		otel.SetMeterProvider(mp)
-		globalMeter = mp.Meter(cfg.ServiceName)
+
 	} else {
 		globalMeter = otel.GetMeterProvider().Meter(cfg.ServiceName)
 	}
